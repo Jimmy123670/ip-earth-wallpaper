@@ -1,0 +1,50 @@
+#!/usr/bin/python3
+
+import argparse
+import os
+import sys
+import threading
+import urllib.request
+from gi.repository import GLib
+
+def ParseArgs():
+    parser = argparse.ArgumentParser(description = 'IpEarthWallpaper')
+    parser.add_argument('-t', type = int, dest = 'timeout', default = 3, help = 'Set timeout in minutes (Default: 3).')
+
+    args = parser.parse_args()
+    return args
+
+def DownloadImage(src, dest):
+    urllib.request.urlretrieve(src, dest)
+
+def SetWallpaper(src):
+    os.system("/usr/bin/gsettings set org.gnome.desktop.background primary-color '#000000'")
+    os.system("/usr/bin/gsettings set org.gnome.desktop.background secondary-color '#000000'")
+    os.system("/usr/bin/gsettings set org.gnome.desktop.background color-shading-type 'solid'")
+    os.system("/usr/bin/gsettings set org.gnome.desktop.background picture-options 'scaled'")
+    os.system("/usr/bin/gsettings set org.gnome.desktop.background picture-uri " + src)
+
+def MainWorker(args):
+    url = 'https://api.checkip.ninja/earth.jpg'
+    filedir = GLib.get_user_special_dir(GLib.UserDirectory.DIRECTORY_PICTURES)
+    filename = url.split('/')[-1]
+
+    DownloadImage(url, filedir + '/' + filename)
+
+    SetWallpaper(filedir + '/' + filename)
+
+def main():
+    args = ParseArgs()
+
+    mainThread = threading.Thread(target = MainWorker, args = (args,), name = "IpEarthWallpaper", daemon = True)
+    mainThread.start()
+    mainThread.join(args.timeout * 60 if args.timeout else None)
+
+    if args.timeout and mainThread.is_alive():
+        sys.exit("Timeout!\n")
+
+    print()
+    sys.exit(0)
+
+if __name__ == "__main__":
+    main()
